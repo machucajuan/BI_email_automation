@@ -1,0 +1,56 @@
+#libraries ----
+#install.packages("gtrendsR") 
+library("gtrendsR")
+library(tidyverse)
+library("googledrive")
+library("readxl")
+library("readr")
+#install.packages("xlsx")
+library(xlsx)
+#install.packages("gmailr", repos="http://cran.r-project.org")
+library(gmailr)
+
+#Multiple keyword query on YT----
+music_trends <- (gtrends(c( "Indie pop + Synth Pop + Chill Wave", "Disco", "House"), gprop = "youtube", time = "today 12-m", geo =c('AR', 'ES', 'VE'))$interest_over_time)
+music_trends$hits <- as.numeric(music_trends$hits) %>% replace_na(0.5)
+
+head(music_trends)
+summary(music_trends)
+str(music_trends)
+
+
+#PLOT Keywords ----
+music_trends_plot <- ggplot(music_trends, aes(x = date, y = hits, colour=keyword, log= "y")) + 
+      geom_line(size=1)+
+      geom_smooth(method='lm')+
+      theme_minimal() +
+     ggtitle("Keyword search in Youtube") +
+     ylab("Popularity Index")+
+     xlab('Date')
+
+#Scale with log ----
+music_trends_plot + scale_y_continuous(trans='log10')
+
+view(music_trends)
+
+#export data and graph to local and drive ----
+write.csv(music_trends, file = "music_trends.csv")
+ggsave('YT music trends plot.png', width = 16, height = 9, dpi = 100)
+music_trends_drive <- drive_upload(media = "music_trends.csv", path = 
+                                  'https://drive.google.com/drive/u/1/folders/1bC1iFMkqRqKrySq32Hdvg--HaqiGngc5', name = "Music Trends YT", type = "spreadsheet")
+
+#send via gmail using Gmail API----
+#use_secret_file("client_gmail.json")
+gm_auth_configure(path = "client_gmail.json")
+
+send_to <- c("saburdaeva@yandex.ru", "juan.machuca93@gmail.com")
+#attachments <- c("music_trends.csv", 'YT music trends plot.png')
+
+email <- gm_mime() %>%
+  gm_to(send_to) %>%
+  gm_from("juan.machuca93@gmail.com") %>%
+  gm_subject("amorchik") %>%
+  gm_html_body('<h1> ?? ?????????? ???????? <b>IS</b> <i>(LUBLU)</i></h1>') %>% 
+  gm_attach_file('lublu.jpg')
+
+gm_send_message(email, user_id = "juan.machuca93@gmail.com")
